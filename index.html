@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seznam zboží</title>
+  <!-- Google Fonts pro moderní vzhled (Poppins, Lato) -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: url('https://www.transparenttextures.com/patterns/green-lattice.png'), #d4edda; /* Zelené pozadí s abstraktním vzorem */
+      color: #333;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding-top: 30px;
+    }
+    .container {
+      background-color: rgba(255, 255, 255, 0.9); /* Polotransparentní bílý pozadí pro lepší čitelnost */
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 900px;
+      margin: 0 20px;
+    }
+    h1, .header-title {
+      font-family: 'Lato', sans-serif;
+      font-weight: 700;
+      color: #444;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .header-title {
+      font-size: 48px;
+      margin-top: 0;
+    }
+    input, button, textarea {
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      width: 100%;
+      max-width: 400px;
+      margin: 10px 0;
+      transition: all 0.3s ease;
+    }
+    input:focus, button:focus, textarea:focus {
+      border-color: #5e6dff;
+      outline: none;
+    }
+    button {
+      background-color: #5e6dff;
+      color: white;
+      cursor: pointer;
+      width: auto;
+      max-width: 200px;
+      margin-top: 10px;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #4a5bc7;
+    }
+    .item {
+      padding: 15px;
+      margin: 8px 0;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background-color: #fff;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background-color 0.3s ease;
+    }
+    .item:hover {
+      background-color: #f1f1f1;
+    }
+    .found {
+      background-color: #90ee90;
+      border: 1px solid #77d77d;
+    }
+    .counter {
+      font-size: 18px;
+      text-align: center;
+      margin: 20px 0;
+    }
+    .counter p {
+      margin: 8px 0;
+      font-weight: 500;
+    }
+    .error {
+      color: red;
+      font-size: 16px;
+      margin-top: 20px;
+      text-align: center;
+    }
+    .item-list-container {
+      max-height: 400px;
+      overflow-y: auto;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header-title">KAMALION</div>
+
+    <h1>Seznam zboží</h1>
+
+    <label for="addCodes">Zadejte kódy zboží (oddělené čárkami nebo novým řádkem):</label>
+    <textarea id="addCodes" rows="5" placeholder="Zadejte kódy..."></textarea><br>
+    <button onclick="addCodes()">Přidat kódy</button>
+    <button onclick="resetApp()">Reset</button>
+
+    <label for="searchCode">Zadejte kód pro vyhledání:</label>
+    <input type="text" id="searchCode" placeholder="Zadejte kód pro vyhledání...">
+    <button onclick="searchCode()">Hledat</button>
+
+    <div class="counter">
+      <p>Počet zboží v seznamu: <span id="totalItems">0</span></p>
+      <p>Počet správně nalezených: <span id="foundItems">0</span> / <span id="remainingItems">0</span></p>
+    </div>
+
+    <div class="item-list-container" id="itemList"></div>
+
+    <div id="errorMessage" class="error" style="display: none;">
+      Kód neexistuje v seznamu!
+    </div>
+  </div>
+
+  <script>
+    let items = []; 
+    let foundItemsCount = 0; 
+    let totalItemsCount = 0; 
+    let searchCounts = {}; 
+
+    // Funkce pro přidání kódů do seznamu
+    function addCodes() {
+      const codesInput = document.getElementById("addCodes").value.trim();
+      const codesArray = codesInput.split(/[\s,]+/); 
+
+      codesArray.forEach(code => {
+        if (code) {
+          const existingItem = items.find(item => item.code === code); 
+          if (!existingItem) {
+            const item = { code: code, found: false, count: 0 }; 
+            items.push(item);
+          }
+        }
+      });
+
+      totalItemsCount = items.length; 
+      renderItemList(); 
+      updateCounters(); 
+      document.getElementById("addCodes").value = ""; 
+      hideError(); 
+    }
+
+    // Funkce pro vykreslení seznamu zboží
+    function renderItemList() {
+      const itemListDiv = document.getElementById("itemList");
+      itemListDiv.innerHTML = ""; 
+      items.forEach(item => {
+        const div = document.createElement("div");
+        div.className = "item";
+        div.id = item.code;
+        const searchCount = searchCounts[item.code] || 0;
+        div.innerHTML = item.code + (searchCount > 0 ? " - " + searchCount + "x" : ""); 
+        if (item.found) {
+          div.classList.add("found"); 
+        }
+        itemListDiv.appendChild(div);
+      });
+    }
+
+    // Funkce pro hledání kódu
+    function searchCode() {
+      const searchCodeInput = document.getElementById("searchCode").value.trim();
+      let found = false;
+
+      items.forEach(item => {
+        const itemDiv = document.getElementById(item.code);
+        if (item.code === searchCodeInput) {
+          itemDiv.classList.add("found"); 
+          item.found = true; 
+          foundItemsCount++; 
+          found = true;
+
+          // Zvýšit počet vyhledání pro tento kód
+          if (searchCounts[item.code]) {
+            searchCounts[item.code]++;
+          } else {
+            searchCounts[item.code] = 1;
+          }
+        }
+      });
+
+      if (!found) {
+        document.getElementById("errorMessage").style.display = "block";
+      } else {
+        hideError(); 
+      }
+
+      updateCounters(); 
+      renderItemList(); 
+    }
+
+    function hideError() {
+      document.getElementById("errorMessage").style.display = "none";
+    }
+
+    function resetApp() {
+      items = []; 
+      foundItemsCount = 0; 
+      totalItemsCount = 0; 
+      searchCounts = {}; 
+      renderItemList(); 
+      updateCounters(); 
+      document.getElementById("searchCode").value = ""; 
+      hideError(); 
+    }
+
+    function updateCounters() {
+      const remainingItems = totalItemsCount - foundItemsCount; 
+      document.getElementById("totalItems").innerText = totalItemsCount; 
+      document.getElementById("foundItems").innerText = foundItemsCount; 
+      document.getElementById("remainingItems").innerText = remainingItems; 
+    }
+
+    updateCounters();
+  </script>
+
+</body>
+</html>
